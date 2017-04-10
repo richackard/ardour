@@ -27,10 +27,12 @@
 
 #include "pbd/error.h"
 #include "pbd/pthread_utils.h"
-#include "ardour/debug.h"
+
 #include "ardour/butler.h"
+#include "ardour/debug.h"
+#include "ardour/disk_io.h"
+#include "ardour/disk_reader.h"
 #include "ardour/io.h"
-#include "ardour/midi_diskstream.h"
 #include "ardour/session.h"
 #include "ardour/track.h"
 #include "ardour/auditioner.h"
@@ -91,13 +93,13 @@ Butler::config_changed (std::string p)
 			std::cerr << "Skip explicit buffer seconds, preset in use\n";
 		}
 	} else if (p == "buffering-preset") {
-		Diskstream::set_buffering_parameters (Config->get_buffering_preset());
+		DiskIOProcessor::set_buffering_parameters (Config->get_buffering_preset());
 		audio_dstream_capture_buffer_size = (uint32_t) floor (Config->get_audio_capture_buffer_seconds() * _session.frame_rate());
 		audio_dstream_playback_buffer_size = (uint32_t) floor (Config->get_audio_playback_buffer_seconds() * _session.frame_rate());
 		_session.adjust_capture_buffering ();
 		_session.adjust_playback_buffering ();
 	} else if (p == "midi-readahead") {
-		MidiDiskstream::set_readahead_frames ((framecnt_t) (Config->get_midi_readahead() * _session.frame_rate()));
+		DiskReader::set_midi_readahead_frames ((framecnt_t) (Config->get_midi_readahead() * _session.frame_rate()));
 	}
 }
 
@@ -105,7 +107,7 @@ int
 Butler::start_thread()
 {
 	// set up capture and playback buffering
-	Diskstream::set_buffering_parameters (Config->get_buffering_preset());
+	DiskIOProcessor::set_buffering_parameters (Config->get_buffering_preset());
 
 	/* size is in Samples, not bytes */
 	const float rate = (float)_session.frame_rate();
@@ -118,7 +120,7 @@ Butler::start_thread()
 	 */
 	midi_dstream_buffer_size = (uint32_t) floor (Config->get_midi_track_buffer_seconds() * rate);
 
-	MidiDiskstream::set_readahead_frames ((framecnt_t) (Config->get_midi_readahead() * rate));
+	DiskReader::set_midi_readahead_frames ((framecnt_t) (Config->get_midi_readahead() * rate));
 
 	should_run = false;
 
