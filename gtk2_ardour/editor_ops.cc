@@ -777,17 +777,6 @@ Editor::build_region_boundary_cache ()
 				break;
 			}
 
-			float speed = 1.0f;
-			RouteTimeAxisView *rtav;
-
-			if (ontrack != 0 && (rtav = dynamic_cast<RouteTimeAxisView*>(ontrack)) != 0 ) {
-				if (rtav->track() != 0) {
-					speed = rtav->track()->speed();
-				}
-			}
-
-			rpos = track_frame_to_session_frame (rpos, speed);
-
 			if (rpos < lpos) {
 				lpos = rpos;
 			}
@@ -825,7 +814,6 @@ Editor::find_next_region (framepos_t frame, RegionPoint point, int32_t dir, Trac
 	boost::shared_ptr<Region> ret;
 	framepos_t rpos = 0;
 
-	float track_speed;
 	framepos_t track_frame;
 	RouteTimeAxisView *rtav;
 
@@ -834,13 +822,7 @@ Editor::find_next_region (framepos_t frame, RegionPoint point, int32_t dir, Trac
 		framecnt_t distance;
 		boost::shared_ptr<Region> r;
 
-		track_speed = 1.0f;
-		if ( (rtav = dynamic_cast<RouteTimeAxisView*>(*i)) != 0 ) {
-			if (rtav->track()!=0)
-				track_speed = rtav->track()->speed();
-		}
-
-		track_frame = session_frame_to_track_frame(frame, track_speed);
+		track_frame = frame;
 
 		if ((r = (*i)->find_next_region (track_frame, point, dir)) == 0) {
 			continue;
@@ -859,9 +841,6 @@ Editor::find_next_region (framepos_t frame, RegionPoint point, int32_t dir, Trac
 			rpos = r->sync_position ();
 			break;
 		}
-
-		// rpos is a "track frame", converting it to "_session frame"
-		rpos = track_frame_to_session_frame(rpos, track_speed);
 
 		if (rpos > frame) {
 			distance = rpos - frame;
@@ -1029,17 +1008,6 @@ Editor::cursor_to_region_point (EditorCursor* cursor, RegionPoint point, int32_t
 		pos = r->sync_position ();
 		break;
 	}
-
-	float speed = 1.0f;
-	RouteTimeAxisView *rtav;
-
-	if ( ontrack != 0 && (rtav = dynamic_cast<RouteTimeAxisView*>(ontrack)) != 0 ) {
-		if (rtav->track() != 0) {
-			speed = rtav->track()->speed();
-		}
-	}
-
-	pos = track_frame_to_session_frame(pos, speed);
 
 	if (cursor == playhead_cursor) {
 		_session->request_locate (pos);
@@ -1220,17 +1188,6 @@ Editor::selected_marker_to_region_point (RegionPoint point, int32_t dir)
 		pos = r->adjust_to_sync (r->first_frame());
 		break;
 	}
-
-	float speed = 1.0f;
-	RouteTimeAxisView *rtav;
-
-	if (ontrack != 0 && (rtav = dynamic_cast<RouteTimeAxisView*>(ontrack)) != 0) {
-		if (rtav->track() != 0) {
-			speed = rtav->track()->speed();
-		}
-	}
-
-	pos = track_frame_to_session_frame(pos, speed);
 
 	loc->move_to (pos, 0);
 }
@@ -3122,8 +3079,6 @@ Editor::separate_regions_between (const TimeSelection& ts)
 
 			/* XXX need to consider musical time selections here at some point */
 
-			double speed = rtv->track()->speed();
-
 			for (list<AudioRange>::const_iterator t = ts.begin(); t != ts.end(); ++t) {
 
 				sigc::connection c = rtv->view()->RegionViewAdded.connect (
@@ -3131,8 +3086,7 @@ Editor::separate_regions_between (const TimeSelection& ts)
 
 				latest_regionviews.clear ();
 
-				playlist->partition ((framepos_t)((*t).start * speed),
-				                     (framepos_t)((*t).end * speed), false);
+				playlist->partition ((*t).start, (*t).end, false);
 
 				c.disconnect ();
 
@@ -3779,16 +3733,11 @@ Editor::trim_region_to_location (const Location& loc, const char* str)
 			return;
 		}
 
-		float speed = 1.0;
 		framepos_t start;
 		framepos_t end;
 
-		if (tav->track() != 0) {
-			speed = tav->track()->speed();
-		}
-
-		start = session_frame_to_track_frame (loc.start(), speed);
-		end = session_frame_to_track_frame (loc.end(), speed);
+		start = loc.start();
+		end = loc.end();
 
 		rv->region()->clear_changes ();
 		rv->region()->trim_to (start, (end - start));
@@ -3839,13 +3788,6 @@ Editor::trim_to_region(bool forward)
 			continue;
 		}
 
-		float speed = 1.0;
-
-		if (atav->track() != 0) {
-			speed = atav->track()->speed();
-		}
-
-
 		boost::shared_ptr<Region> region = arv->region();
 		boost::shared_ptr<Playlist> playlist (region->playlist());
 
@@ -3859,7 +3801,7 @@ Editor::trim_to_region(bool forward)
 			continue;
 		    }
 
-		    region->trim_end((framepos_t) ( (next_region->first_frame() - 1) * speed));
+		    region->trim_end (next_region->first_frame() - 1);
 		    arv->region_changed (PropertyChange (ARDOUR::Properties::length));
 		}
 		else {
@@ -3870,7 +3812,7 @@ Editor::trim_to_region(bool forward)
 			continue;
 		    }
 
-		    region->trim_front((framepos_t) ((next_region->last_frame() + 1) * speed));
+		    region->trim_front (next_region->last_frame() + 1);
 
 		    arv->region_changed (ARDOUR::bounds_change);
 		}
