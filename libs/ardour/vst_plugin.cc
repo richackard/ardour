@@ -395,6 +395,9 @@ VSTPlugin::get_parameter_descriptor (uint32_t which, ParameterDescriptor& desc) 
 		desc.sr_dependent = false;
 	}
 
+	//TODO: call update_steps() like other plugin implementations
+	//& make update_steps() sanitize parameters (e.g don't allow log + toggle)
+
 	desc.normal = get_parameter (which);
 	if (_parameter_defaults.find (which) == _parameter_defaults.end ()) {
 		_parameter_defaults[which] = desc.normal;

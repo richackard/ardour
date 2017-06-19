@@ -2127,6 +2127,8 @@ LV2Plugin::get_parameter_descriptor(uint32_t which, ParameterDescriptor& desc) c
 
 	desc.update_steps();
 
+	// TODO use _desc.rangesteps, consolidate this code.
+
 	if (steps) {
 		//override auto-calculated steps in update_steps()
 		float s = lilv_node_as_float (steps);
