@@ -170,7 +170,6 @@ AutomationList::operator= (const AutomationList& other)
 {
 	if (this != &other) {
 
-
 		ControlList::operator= (other);
 		_state = other._state;
 		_style = other._style;
@@ -206,6 +205,24 @@ AutomationList::set_automation_state (AutoState s)
 		}
 		automation_state_changed (s); /* EMIT SIGNAL */
 	}
+}
+
+Evoral::ControlList::InterpolationStyle
+AutomationList::default_interpolation () const
+{
+	switch (_parameter.type()) {
+		case GainAutomation:
+		case BusSendLevel:
+			return ControlList::Exponential;
+			break;
+		case TrimAutomation:
+			return ControlList::Logarithmic;
+			break;
+		default:
+			break;
+	}
+	/* based on Evoral::ParameterDescriptor log,toggle,.. */
+	return ControlList::default_interpolation ();
 }
 
 void
@@ -506,7 +523,7 @@ AutomationList::set_state (const XMLNode& node, int version)
 	}
 
 	if (!node.get_property (X_("interpolation-style"), _interpolation)) {
-		_interpolation = Linear;
+		_interpolation = default_interpolation ();
 	}
 
 	if (!node.get_property (X_("style"), _style)) {
