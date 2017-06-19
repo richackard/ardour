@@ -1198,65 +1198,19 @@ AutomationLine::view_to_model_coord (double& x, double& y) const
 void
 AutomationLine::view_to_model_coord_y (double& y) const
 {
-	/* TODO: This should be more generic (use ParameterDescriptor)
-	 * or better yet:  Controllable -> set_interface();
-	 */
-
-	if (   alist->parameter().type() == GainAutomation
-	    || alist->parameter().type() == EnvelopeAutomation
-	    || (_desc.logarithmic && _desc.lower == 0. && _desc.upper > _desc.lower)) {
-		y = slider_position_to_gain_with_max (y, _desc.upper);
-		y = max ((double)_desc.lower, y);
-		y = min ((double)_desc.upper, y);
-	} else if (alist->parameter().type() == TrimAutomation
-	           || (_desc.logarithmic && _desc.lower * _desc.upper > 0 && _desc.upper > _desc.lower)) {
-		const double lower_db = accurate_coefficient_to_dB (_desc.lower);
-		const double range_db = accurate_coefficient_to_dB (_desc.upper) - lower_db;
-		y = max (0.0, y);
-		y = min (1.0, y);
-		y = dB_to_coefficient (lower_db + y * range_db);
-	} else if (alist->parameter().type() == PanAzimuthAutomation ||
-	           alist->parameter().type() == PanElevationAutomation) {
-		y = 1.0 - y;
-		y = max ((double) _desc.lower, y);
-		y = min ((double) _desc.upper, y);
-	} else if (alist->parameter().type() == PanWidthAutomation) {
-		y = 2.0 * y - 1.0;
-		y = max ((double) _desc.lower, y);
-		y = min ((double) _desc.upper, y);
-	} else {
-		y = y * (double)(_desc.upper - _desc.lower) + _desc.lower;
-		if (_desc.integer_step) {
-			y = round(y);
-		} else if (_desc.toggled) {
-			y = (y > 0.5) ? 1.0 : 0.0;
-		}
-		y = max ((double) _desc.lower, y);
-		y = min ((double) _desc.upper, y);
+	if (alist->default_interpolation () != alist->interpolation()) {
+		//TODO use non-standard scaling.
 	}
+	y = _desc.from_interface (y);
 }
 
 void
 AutomationLine::model_to_view_coord_y (double& y) const
 {
-	/* TODO: This should be more generic (use ParameterDescriptor) */
-	if (   alist->parameter().type() == GainAutomation
-	    || alist->parameter().type() == EnvelopeAutomation
-	    || (_desc.logarithmic && _desc.lower == 0. && _desc.upper > _desc.lower)) {
-		y = gain_to_slider_position_with_max (y, _desc.upper);
-	} else if (alist->parameter().type() == TrimAutomation
-	           || (_desc.logarithmic && _desc.lower * _desc.upper > 0 && _desc.upper > _desc.lower)) {
-		const double lower_db = accurate_coefficient_to_dB (_desc.lower);
-		const double range_db = accurate_coefficient_to_dB (_desc.upper) - lower_db;
-		y = (accurate_coefficient_to_dB (y) - lower_db) / range_db;
-	} else if (alist->parameter().type() == PanAzimuthAutomation ||
-	           alist->parameter().type() == PanElevationAutomation) {
-		y = 1.0 - y;
-	} else if (alist->parameter().type() == PanWidthAutomation) {
-		y = .5 + y * .5;
-	} else {
-		y = (y - _desc.lower) / (double)(_desc.upper - _desc.lower);
+	if (alist->default_interpolation () != alist->interpolation()) {
+		//TODO use non-standard scaling.
 	}
+	y = _desc.to_interface (y);
 }
 
 void
